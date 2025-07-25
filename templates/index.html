@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Email Verifier</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <h2>Email Verifier Tool</h2>
+  <form method="post" action="/check">
+    <input type="email" name="email" placeholder="Enter Email">
+    <button type="submit">Check</button>
+  </form>
+
+  {% if result %}
+    <p>{{ result }}</p>
+  {% endif %}
+</body>
+</html>
