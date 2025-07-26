@@ -65,7 +65,7 @@ def verify():
         'status': 'Valid ✅' if smtp else 'Invalid ❌',
         'suggestion': 'Try another email or check domain spelling.' if not smtp else 'Looks good!'
     }
-    return render_template('result.html', result=result)
+    return render_template('index.html', result=result)
 
 if __name__ == '__main__':
     import os
