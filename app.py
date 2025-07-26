@@ -1,76 +1,71 @@
 from flask import Flask, render_template, request
-import os
 import re
-import smtplib
 import dns.resolver
+import smtplib
 import socket
 
 app = Flask(__name__)
 
-# ✅ Email Syntax Check
+# Helper Functions
 def is_valid_syntax(email):
     regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(regex, email) is not None
 
-# ✅ Get MX Records
+def get_domain(email):
+    return email.split('@')[-1]
+
 def get_mx_records(domain):
     try:
         answers = dns.resolver.resolve(domain, 'MX')
-        return sorted([(r.preference, str(r.exchange)) for r in answers])
-    except Exception as e:
-        return None
+        return [str(r.exchange).rstrip('.') for r in answers]
+    except:
+        return []
 
-# ✅ SMTP-Level Check
 def smtp_check(email, mx_records):
-    from_address = 'check@yourdomain.com'  # Dummy sender
-    for preference, mx in mx_records:
+    from_address = 'verify@example.com'
+    for mx in mx_records:
         try:
             server = smtplib.SMTP(timeout=10)
             server.connect(mx)
-            server.helo(socket.gethostname())
+            server.helo()
             server.mail(from_address)
             code, message = server.rcpt(email)
             server.quit()
-            if code == 250 or code == 251:
-                return f"✅ SMTP Response: {code} {message.decode()}"
-            else:
-                return f"❌ SMTP Rejected: {code} - {message.decode()}"
-        except Exception as e:
+            if code in [250, 251]:
+                return True
+        except:
             continue
-    return "❌ SMTP check failed or all MX failed."
+    return False
 
+def is_disposable(domain):
+    disposable_domains = ["mailinator.com", "10minutemail.com", "tempmail.com"]
+    return domain in disposable_domains
+
+# Routes
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/check', methods=['POST'])
-def check_email():
+@app.route('/verify', methods=['POST'])
+def verify():
     email = request.form['email']
-    results = []
+    syntax = is_valid_syntax(email)
+    domain = get_domain(email) if syntax else "Invalid syntax"
+    mx_records = get_mx_records(domain) if syntax else []
+    smtp = smtp_check(email, mx_records) if mx_records else False
+    disposable = is_disposable(domain)
 
-    # Step 1: Syntax Check
-    if not is_valid_syntax(email):
-        results.append("❌ Invalid email syntax.")
-        return render_template('index.html', result='\n'.join(results))
-
-    results.append("✅ Email syntax is valid.")
-
-    # Step 2: MX Check
-    domain = email.split('@')[1]
-    mx_records = get_mx_records(domain)
-    if not mx_records:
-        results.append("❌ No MX records found for domain.")
-        return render_template('index.html', result='\n'.join(results))
-    
-    results.append("✅ MX records found:")
-    for priority, mx in mx_records:
-        results.append(f" - {mx} (Priority {priority})")
-
-    # Step 3: SMTP Check
-    smtp_result = smtp_check(email, mx_records)
-    results.append(smtp_result)
-
-    return render_template('index.html', result='\n'.join(results))
+    result = {
+        'email': email,
+        'syntax': '✔️' if syntax else '❌',
+        'domain': domain,
+        'mx': '✔️' if mx_records else '❌',
+        'smtp': '✔️' if smtp else '❌',
+        'disposable': 'Yes' if disposable else 'No',
+        'status': 'Valid ✅' if smtp else 'Invalid ❌',
+        'suggestion': 'Try another email or check domain spelling.' if not smtp else 'Looks good!'
+    }
+    return render_template('result.html', result=result)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(debug=True)

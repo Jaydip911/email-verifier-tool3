@@ -1,47 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Email Verifier</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verifier</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f4f6f9;
+        }
+        .status-valid { color: green; font-weight: bold; }
+        .status-invalid { color: red; font-weight: bold; }
+        .status-unknown { color: orange; font-weight: bold; }
+        .badge-pill {
+            border-radius: 10rem;
+            padding: 0.5em 0.75em;
+        }
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
-<body class="bg-light">
-  <div class="container py-5">
-    <div class="row justify-content-center">
-      <div class="col-md-8 col-lg-6">
-        <div class="card shadow-lg p-4 rounded-4">
-          <h3 class="text-center mb-4 text-primary">📧 Email Verifier Tool</h3>
-          <form method="post" action="/check">
-            <div class="mb-3">
-              <label for="email" class="form-label">Enter Single Email</label>
-              <input type="email" class="form-control form-control-lg" name="email" id="email" placeholder="example@domain.com">
-            </div>
-
-            <!-- Future Feature: Bulk textarea input -->
-            <!--
-            <div class="mb-3">
-              <label for="bulk" class="form-label">Or Paste Multiple Emails</label>
-              <textarea class="form-control" name="bulk_emails" rows="4" placeholder="one@example.com&#10;two@example.com"></textarea>
-            </div>
-            -->
-
-            <div class="d-grid">
-              <button type="submit" class="btn btn-primary btn-lg">🔍 Verify</button>
-            </div>
-          </form>
-
-          {% if result %}
-          <div class="alert alert-info mt-4 shadow-sm">
-            <h5 class="mb-3 text-success">✅ Results:</h5>
-            <pre class="bg-light p-3 rounded border">{{ result }}</pre>
-          </div>
-          {% endif %}
+<body>
+    <div class="container py-5">
+        <div class="text-center mb-4">
+            <h1>Email Verifier Tool</h1>
+            <p class="text-muted">Check syntax, domain, MX, SMTP, and more!</p>
         </div>
-      </div>
-    </div>
-  </div>
+        <form method="POST" action="/verify">
+            <div class="mb-3">
+                <label for="email" class="form-label">Enter Email Address</label>
+                <input type="email" class="form-control" id="email" name="email" placeholder="example@domain.com" required>
+            </div>
+            <div class="text-center">
+                <button type="submit" class="btn btn-primary px-5">Verify</button>
+            </div>
+        </form>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        {% if results %}
+        <div class="card mt-5">
+            <div class="card-body">
+                <h4 class="card-title mb-3">Verification Result</h4>
+                <ul class="list-group">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Email
+                        <span class="badge bg-info text-dark">{{ results.email }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Syntax
+                        <span class="badge bg-{{ 'success' if results.syntax else 'danger' }}">{{ 'Valid' if results.syntax else 'Invalid' }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Domain
+                        <span class="badge bg-{{ 'success' if results.domain else 'danger' }}">{{ results.domain or 'Invalid' }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        MX Records
+                        <span class="badge bg-{{ 'success' if results.mx_records else 'danger' }}">{{ 'Found' if results.mx_records else 'Not Found' }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        SMTP Check
+                        <span class="badge bg-{{ 'success' if results.smtp else 'danger' }}">{{ 'Success' if results.smtp else 'Failed' }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Disposable
+                        <span class="badge bg-{{ 'danger' if results.disposable else 'success' }}">{{ 'Yes' if results.disposable else 'No' }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Catch-All
+                        <span class="badge bg-warning text-dark">Not Implemented</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Status
+                        <span class="badge bg-primary">{{ results.status }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Suggestion
+                        <span class="badge bg-secondary">{{ results.suggestion or 'N/A' }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
 </body>
 </html>
