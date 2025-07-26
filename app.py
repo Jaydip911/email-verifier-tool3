@@ -45,27 +45,53 @@ def is_disposable(domain):
 @app.route('/')
 def index():
     return render_template('index.html')
-
 @app.route('/verify', methods=['POST'])
 def verify():
-    email = request.form['email']
-    syntax = is_valid_syntax(email)
-    domain = get_domain(email) if syntax else "Invalid syntax"
-    mx_records = get_mx_records(domain) if syntax else []
-    smtp = smtp_check(email, mx_records) if mx_records else False
-    disposable = is_disposable(domain)
+    try:
+        email = request.form['email']
+        syntax = is_valid_syntax(email)
 
-    result = {
-        'email': email,
-        'syntax': '✔️' if syntax else '❌',
-        'domain': domain,
-        'mx': '✔️' if mx_records else '❌',
-        'smtp': '✔️' if smtp else '❌',
-        'disposable': 'Yes' if disposable else 'No',
-        'status': 'Valid ✅' if smtp else 'Invalid ❌',
-        'suggestion': 'Try another email or check domain spelling.' if not smtp else 'Looks good!'
-    }
-    return render_template('index.html', result=result)
+        if not syntax:
+            return render_template('index.html', result={
+                'email': email,
+                'syntax': '❌',
+                'domain': 'Invalid syntax',
+                'mx': '❌',
+                'smtp': '❌',
+                'disposable': 'Unknown',
+                'status': 'Invalid ❌',
+                'suggestion': 'Invalid email format.'
+            })
+
+        domain = get_domain(email)
+        mx_records = get_mx_records(domain)
+        smtp = smtp_check(email, mx_records) if mx_records else False
+        disposable = is_disposable(domain)
+
+        result = {
+            'email': email,
+            'syntax': '✔️',
+            'domain': domain,
+            'mx': '✔️' if mx_records else '❌',
+            'smtp': '✔️' if smtp else '❌',
+            'disposable': 'Yes' if disposable else 'No',
+            'status': 'Valid ✅' if smtp else 'Invalid ❌',
+            'suggestion': 'Looks good!' if smtp else 'Try another email or check domain spelling.'
+        }
+        return render_template('index.html', result=result)
+
+    except Exception as e:
+        print(f"Error in verify(): {e}")
+        return render_template('index.html', result={
+            'email': 'Error',
+            'syntax': '❌',
+            'domain': 'Error',
+            'mx': '❌',
+            'smtp': '❌',
+            'disposable': 'Unknown',
+            'status': 'Error ❌',
+            'suggestion': 'Internal Server Error. Try again later.'
+        })
 
 if __name__ == '__main__':
     import os
